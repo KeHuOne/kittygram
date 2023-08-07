@@ -1,26 +1,34 @@
-#  Как работать с репозиторием финального задания
+Kittygram - социальная сеть для размещения домашних питомцев семейства кошачьих.
 
-## Что нужно сделать
+Клонировать репозиторий:
 
-Настроить запуск проекта Kittygram в контейнерах и CI/CD с помощью GitHub Actions
+git clone git@github.com:AlexandraBudko/kittygram_final.git
 
-## Как проверить работу с помощью автотестов
+Перейти в директорию бэкенд:
 
-В корне репозитория создайте файл tests.yml со следующим содержимым:
-```yaml
-repo_owner: ваш_логин_на_гитхабе
-kittygram_domain: полная ссылка (https://доменное_имя) на ваш проект Kittygram
-taski_domain: полная ссылка (https://доменное_имя) на ваш проект Taski
-dockerhub_username: ваш_логин_на_докерхабе
-```
+cd kittygram_final/backend
 
-Скопируйте содержимое файла `.github/workflows/main.yml` в файл `kittygram_workflow.yml` в корневой директории проекта.
+Cоздать и активировать виртуальное окружение:
 
-Для локального запуска тестов создайте виртуальное окружение, установите в него зависимости из backend/requirements.txt и запустите в корневой директории проекта `pytest`.
+python3 -m venv venv
+source env/bin/activate
 
-## Чек-лист для проверки перед отправкой задания
+Установить зависимости из файла requirements.txt:
 
-- Проект Taski доступен по доменному имени, указанному в `tests.yml`.
-- Проект Kittygram доступен по доменному имени, указанному в `tests.yml`.
-- Пуш в ветку main запускает тестирование и деплой Kittygram, а после успешного деплоя вам приходит сообщение в телеграм.
-- В корне проекта есть файл `kittygram_workflow.yml`.
+pip install -r requirements.txt
+
+Выполнить миграции:
+
+python3 manage.py migrate
+
+Запустить проект:
+
+python3 manage.py runserver
+
+Запрос на регистрацию нового пользователя:
+
+https://kittygrambudko.hopto.org/signin
+
+Запрос на добавление нового котика:
+
+https://kittygrambudko.hopto.org/cats/add
