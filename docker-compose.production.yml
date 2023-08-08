@@ -2,8 +2,8 @@ version: '3'
 
 volumes:
   pg_data_production:
-  static_production:
-  media_production:
+  static:
+  media:
 
 services:
   db:
@@ -15,20 +15,20 @@ services:
     image: budkoa/kittygram_backend
     env_file: .env
     volumes:
-      - static_production:/backend_static
-      - media_production:/app/media/cats/images/
+      - static:/backend_static
+      - media:/app/media/cats/images/
   frontend:
     image: budkoa/kittygram_frontend
     env_file: .env
     command: cp -r /app/build/. /frontend_static/
     volumes:
-      - static_production:/frontend_static
+      - static:/frontend_static
   gateway:
     image: budkoa/kittygram_gateway
     env_file: .env
     volumes:
-      - static_production:/staticfiles/
-      - media_production:/media/cats/images/
+      - static:/staticfiles/
+      - media:/media/cats/images/
     ports:
       - 9000:80
     depends_on:
