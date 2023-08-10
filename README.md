@@ -32,3 +32,16 @@ https://kittygrambudko.hopto.org/signin
 Запрос на добавление нового котика:
 
 https://kittygrambudko.hopto.org/cats/add
+
+Технологии:
+Django REST
+Python 3.9
+Gunicorn
+Nginx
+JS
+Node.js
+PostgreSQL
+Docker
+
+Автор:
+Будько Александра
