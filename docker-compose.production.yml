@@ -12,19 +12,19 @@ services:
     volumes:
       - pg_data_production:/var/lib/postgresql/data
   backend:
-    image: budkoa/kittygram_backend
+    image: kehuone/kittygram_backend
     env_file: .env
     volumes:
       - static:/backend_static
       - media:/app/media/cats/images/
   frontend:
-    image: budkoa/kittygram_frontend
+    image: kehuone/kittygram_frontend
     env_file: .env
     command: cp -r /app/build/. /frontend_static/
     volumes:
       - static:/frontend_static
   gateway:
-    image: budkoa/kittygram_gateway
+    image: kehuone/kittygram_gateway
     env_file: .env
     volumes:
       - static:/staticfiles/
