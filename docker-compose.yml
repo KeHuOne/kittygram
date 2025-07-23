@@ -24,9 +24,9 @@ services:
   frontend:
     build: ./frontend/
     env_file: .env
-    command: cp -r /app/build/. /frontend_static/
+  # Теперь command не нужен, т.к. CMD в Dockerfile уже запускает сервер
     volumes:
-      - static:/frontend_static
+      - static:/frontend_static  # файлы уже скопированы при сборке
 
   gateway:
     build: ./nginx/
