@@ -44,6 +44,3 @@ PostgreSQL
 Docker
 
 Автор:
-
-
-
