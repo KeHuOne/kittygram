@@ -18,11 +18,11 @@ services:
       - static:/backend_static
       - media:/app/media/cats/images/
   frontend:
-    build: ./frontend/
+    image: kehuone/kittygram_frontend
     env_file: .env
-      # Теперь command не нужен, т.к. CMD в Dockerfile уже запускает сервер
+    command: cp -r /app/build/. /frontend_static/
     volumes:
-      - static:/frontend_static  # файлы уже скопированы при сборке
+      - static:/frontend_static
   gateway:
     image: kehuone/kittygram_gateway
     env_file: .env
