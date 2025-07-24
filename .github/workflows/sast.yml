@@ -30,7 +30,7 @@ jobs:
           bandit -r . -f json -o reports/bandit-report.json
 
       - name: 📤 Загрузка артефактов
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bandit-report
           path: reports/bandit-report.json
