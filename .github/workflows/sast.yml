@@ -1,4 +1,4 @@
-name: 🛡 SAST - Bandit Scan
+name: SAST - Bandit Scan
 
 on:
   push:
@@ -8,28 +8,28 @@ on:
 
 jobs:
   bandit-scan:
-    name: 🔍 Static Code Analysis (Bandit)
+    name: Static Code Analysis (Bandit)
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Клонирование репозитория
+      - name: Клонирование репозитория
         uses: actions/checkout@v3
 
-      - name: 🐍 Установка Python
+      - name: Установка Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: 📦 Установка Bandit
+      - name: Установка Bandit
         run: |
           pip install bandit
 
-      - name: 🔍 Запуск Bandit-анализа (не критично)
+      - name: Запуск Bandit-анализа (не критично)
         run: |
           mkdir -p reports
           bandit -r . -f json -o reports/bandit-report.json || true
 
-      - name: 📤 Загрузка артефактов
+      - name: Загрузка артефактов
         uses: actions/upload-artifact@v4
         with:
           name: bandit-report
