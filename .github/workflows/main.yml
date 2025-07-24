@@ -34,7 +34,6 @@ jobs:
           name: bandit-report
           path: reports/bandit-report.json
 
-jobs:
   tests:
     runs-on: ubuntu-latest
     
