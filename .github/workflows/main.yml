@@ -51,6 +51,11 @@ jobs:
       run: |
         echo "# 📘 Semgrep Report" > reports/semgrep-report.md
         jq -r '.results[] | "## \(.path)\n- Line: \(.start.line)\n- Rule: \(.check_id)\n- Message: \(.extra.message)\n"' reports/semgrep-report.json >> reports/semgrep-report.md
+    
+    - name: 🛠 Install PDF tools
+      run: |
+       sudo apt update
+       sudo apt install -y pandoc texlive-latex-base texlive-xetex texlive-fonts-recommended texlive-latex-recommended jq
 
     - name: 🖨 Convert Bandit Markdown to PDF
       run: |
