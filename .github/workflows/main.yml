@@ -27,6 +27,7 @@ jobs:
       - name: 🔍 Run Bandit scan
         run: |
           mkdir -p reports
+          touch reports/bandit-report.json
           bandit -r . --severity-level MEDIUM -f json -o reports/bandit-report.json || true
 
       - name: 📝 Generate Markdown report
@@ -54,13 +55,13 @@ jobs:
 
       - name: 📦 Install Semgrep and Pandoc
         run: |
-          curl -sSL https://semgrep.dev/install.sh | sh
+          pip install semgrep
           sudo apt update && sudo apt install pandoc -y
 
       - name: 🔍 Run Semgrep
         run: |
           mkdir -p reports
-          ./semgrep --config=auto --json > reports/semgrep-report.json || true
+          semgrep --config=auto --json > reports/semgrep-report.json || true
 
       - name: 📝 Generate Markdown report
         run: |
