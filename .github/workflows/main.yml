@@ -40,16 +40,16 @@ jobs:
 
     - name: 📝 Convert Bandit report to Markdown
       run: |
-        echo "# 🐍 Bandit Report" > reports/bandit-report.md
+        echo "# Bandit Report" > reports/bandit-report.md
         if [ -s reports/bandit-report.json ]; then
           jq -r '.results[] | "## \(.filename)\n- Line: \(.line)\n- Severity: \(.issue_severity)\n- Confidence: \(.issue_confidence)\n- Issue: \(.issue_text)\n"' reports/bandit-report.json >> reports/bandit-report.md
         else
-          echo "## ✅ No issues found" >> reports/bandit-report.md
+          echo "##  No issues found" >> reports/bandit-report.md
         fi
 
     - name: 📝 Convert Semgrep report to Markdown
       run: |
-        echo "# 📘 Semgrep Report" > reports/semgrep-report.md
+        echo "# Semgrep Report" > reports/semgrep-report.md
         jq -r '.results[] | "## \(.path)\n- Line: \(.start.line)\n- Rule: \(.check_id)\n- Message: \(.extra.message)\n"' reports/semgrep-report.json >> reports/semgrep-report.md
     
     - name: 🛠 Install PDF tools
