@@ -40,13 +40,13 @@ jobs:
             report_md.md
 
       - name: 🔧 Install jq
-        run: sudo apt update && sudo apt install -y jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: 📊 Extract ZAP scan results
         id: zap_summary
         run: |
-          WARN=$(jq '.site[0].alerts[] | select(.riskcode=="2") | .riskdesc' report_json.json | wc -l)
-          FAIL=$(jq '.site[0].alerts[] | select(.riskcode=="3") | .riskdesc' report_json.json | wc -l)
+          WARN=$(jq '.site[0].alerts[] | select(.riskcode=="2")' report_json.json | wc -l)
+          FAIL=$(jq '.site[0].alerts[] | select(.riskcode=="3")' report_json.json | wc -l)
           PASS=$(jq '.site[0].alerts' report_json.json | jq length)
           echo "warn=$WARN" >> $GITHUB_OUTPUT
           echo "fail=$FAIL" >> $GITHUB_OUTPUT
@@ -56,6 +56,7 @@ jobs:
     name: 📣 Telegram Notification
     runs-on: ubuntu-latest
     needs: zap_scan
+
     steps:
       - name: 📬 Send message to Telegram
         uses: appleboy/telegram-action@master
@@ -67,6 +68,6 @@ jobs:
 
             ⚠ Warnings: ${{ needs.zap_scan.outputs.warn }}
             🚫 Fails: ${{ needs.zap_scan.outputs.fail }}
-            ✅ Alerts Detected: ${{ needs.zap_scan.outputs.pass }}
+            ✅ Total Alerts: ${{ needs.zap_scan.outputs.pass }}
 
-            📎 Отчёт приложен к артефактам GitHub Actions.
+            📎 Отчёт доступен как артефакт в GitHub Actions.
