@@ -7,32 +7,75 @@ on:
 
 jobs:
   bandit-scan:
-    name: 🛡 Static Code Analysis (Bandit)
+    name: 🛡 Bandit Static Code Analysis
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Клонирование репозитория
+      - name: 📥 Checkout repo
         uses: actions/checkout@v3
 
-      - name: 🐍 Установка Python
+      - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: 📦 Установка Bandit
+      - name: 📦 Install tools
         run: |
           pip install bandit
+          sudo apt update && sudo apt install pandoc -y
 
-      - name: 🔍 Запуск Bandit-анализа
+      - name: 🔍 Run Bandit scan
         run: |
           mkdir -p reports
           bandit -r . --severity-level MEDIUM -f json -o reports/bandit-report.json || true
 
-      - name: 📤 Загрузка артефактов Bandit
+      - name: 📝 Generate Markdown report
+        run: |
+          echo "# 🛡 Bandit Report" > reports/bandit-report.md
+          jq -r '.results[] | "### \(.filename)\n- **Issue:** \(.issue_text)\n- **Severity:** \(.issue_severity)\n- **Confidence:** \(.issue_confidence)\n- **Line:** \(.line_number)\n"' reports/bandit-report.json >> reports/bandit-report.md
+
+      - name: 🖨 Convert Bandit Markdown to PDF
+        run: |
+          pandoc reports/bandit-report.md -o reports/bandit-report.pdf
+
+      - name: 📤 Upload Bandit reports
         uses: actions/upload-artifact@v4
         with:
           name: bandit-report
-          path: reports/bandit-report.json
+          path: reports/
+
+  semgrep-scan:
+    name: 🛡 Semgrep Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repo
+        uses: actions/checkout@v3
+
+      - name: 📦 Install Semgrep and Pandoc
+        run: |
+          curl -sSL https://semgrep.dev/install.sh | sh
+          sudo apt update && sudo apt install pandoc -y
+
+      - name: 🔍 Run Semgrep
+        run: |
+          mkdir -p reports
+          ./semgrep --config=auto --json > reports/semgrep-report.json || true
+
+      - name: 📝 Generate Markdown report
+        run: |
+          echo "# 🛡 Semgrep Report" > reports/semgrep-report.md
+          jq -r '.results[] | "### \(.path)\n- **Check ID:** \(.check_id)\n- **Message:** \(.extra.message)\n- **Severity:** \(.extra.severity)\n- **Line:** \(.start.line)\n"' reports/semgrep-report.json >> reports/semgrep-report.md
+
+      - name: 🖨 Convert Semgrep Markdown to PDF
+        run: |
+          pandoc reports/semgrep-report.md -o reports/semgrep-report.pdf
+
+      - name: 📤 Upload Semgrep reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: reports/
 
   tests:
     name: 🧪 Backend Tests
