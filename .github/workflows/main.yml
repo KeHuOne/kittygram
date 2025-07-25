@@ -7,7 +7,7 @@ on:
 
 jobs:
   sast:
-    name: Static Application Security Testing
+    name: 🔐 Static Application Security Testing (SAST)
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +19,7 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: 📦 Install dependencies (bandit, semgrep, etc.)
+    - name: 📦 Install dependencies (bandit, semgrep, PDF tools)
       run: |
         pip install bandit semgrep
         sudo apt update
@@ -30,7 +30,6 @@ jobs:
 
     - name: 🔍 Run Bandit
       run: |
-        touch reports/bandit-report.json
         bandit -r . --severity-level MEDIUM -f json -o reports/bandit-report.json || true
 
     - name: 🔍 Run Semgrep
@@ -55,7 +54,7 @@ jobs:
       run: |
         pandoc reports/semgrep-report.md -o reports/semgrep-report.pdf
 
-    - name: 📤 Upload all reports
+    - name: 📤 Upload all SAST reports
       uses: actions/upload-artifact@v4
       with:
         name: sast-reports
@@ -211,7 +210,7 @@ jobs:
       - build_and_push_to_docker_hub
       - build_frontend_and_push_to_docker_hub
       - build_gateway_and_push_to_docker_hub
-      - bandit-scan
+      - sast
     steps:
       - name: 📥 Checkout repo
         uses: actions/checkout@v3
