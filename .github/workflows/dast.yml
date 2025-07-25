@@ -15,6 +15,7 @@ jobs:
       warn: ${{ steps.zap_summary.outputs.warn }}
       fail: ${{ steps.zap_summary.outputs.fail }}
       pass: ${{ steps.zap_summary.outputs.pass }}
+      run_id: ${{ steps.save_run_id.outputs.run_id }}
 
     steps:
       - name: 📁 Create output files
@@ -29,15 +30,7 @@ jobs:
           fail_action: false
           cmd_options: '-a -j'
           allow_issue_writing: false
-
-      - name: 💾 Save ZAP reports as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: zap-dast-reports
-          path: |
-            report_html.html
-            report_json.json
-            report_md.md
+          artifact_name: zap-dast-reports  # ✅ корректное имя артефакта
 
       - name: 🔧 Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
@@ -51,6 +44,10 @@ jobs:
           echo "warn=$WARN" >> $GITHUB_OUTPUT
           echo "fail=$FAIL" >> $GITHUB_OUTPUT
           echo "pass=$PASS" >> $GITHUB_OUTPUT
+
+      - name: 📌 Save current run ID
+        id: save_run_id
+        run: echo "run_id=${{ github.run_id }}" >> $GITHUB_OUTPUT
 
   send-message:
     name: 📣 Telegram Notification
@@ -68,8 +65,6 @@ jobs:
 
             ⚠ Warnings: ${{ needs.zap-scan.outputs.warn }}
             🚫 Fails: ${{ needs.zap-scan.outputs.fail }}
-            ✅ Всего уязвимостей: ${{ needs.zap-scan.outputs.pass }}
+            ✅ Total Alerts: ${{ needs.zap-scan.outputs.pass }}
 
-            ${{ fromJSON('["❗Обнаружены критические уязвимости!", "✅ Критических уязвимостей нет."]')[needs.zap-scan.outputs.fail == '0'] }}
-
-            📎 Отчёт доступен как артефакт в GitHub Actions.
+            📎 Скачать отчёт: https://github.com/${{ github.repository }}/actions/runs/${{ needs.zap-scan.outputs.run_id }}
