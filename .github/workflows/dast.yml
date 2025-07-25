@@ -1,3 +1,11 @@
+name: 🧪 DAST ZAP Scan
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
 jobs:
   zap_scan:
     name: 📡 OWASP ZAP Full Scan
