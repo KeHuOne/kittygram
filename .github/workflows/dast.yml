@@ -24,13 +24,13 @@ jobs:
           chmod a+w report_html.html report_json.json report_md.md
 
       - name: 📡 Run ZAP Scan
-        uses: zaproxy/action-full-scan@v0.10.0
+        uses: zaproxy/action-full-scan@v0.12.0
         with:
           target: 'http://185.121.13.20:9000'
           fail_action: false
           cmd_options: '-a -j'
           allow_issue_writing: false
-          artifact_name: zap-dast-reports  # ✅ корректное имя артефакта
+          artifact_name: zap-reports
 
       - name: 🔧 Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
