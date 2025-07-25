@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  zap-scan:  # ✅ заменено zap_scan → zap-scan
+  zap-scan:
     name: 📡 OWASP ZAP Full Scan
     runs-on: ubuntu-latest
 
@@ -52,7 +52,7 @@ jobs:
           echo "fail=$FAIL" >> $GITHUB_OUTPUT
           echo "pass=$PASS" >> $GITHUB_OUTPUT
 
-  send-message:  # ✅ тоже без _
+  send-message:
     name: 📣 Telegram Notification
     runs-on: ubuntu-latest
     needs: zap-scan
@@ -68,6 +68,8 @@ jobs:
 
             ⚠ Warnings: ${{ needs.zap-scan.outputs.warn }}
             🚫 Fails: ${{ needs.zap-scan.outputs.fail }}
-            ✅ Total Alerts: ${{ needs.zap-scan.outputs.pass }}
+            ✅ Всего уязвимостей: ${{ needs.zap-scan.outputs.pass }}
+
+            ${{ fromJSON('["❗Обнаружены критические уязвимости!", "✅ Критических уязвимостей нет."]')[needs.zap-scan.outputs.fail == '0'] }}
 
             📎 Отчёт доступен как артефакт в GitHub Actions.
