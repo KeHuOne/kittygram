@@ -21,11 +21,20 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: 📦 Install security tools
+    - name: 📦 Install security tools and LaTeX dependencies
       run: |
         pip install bandit semgrep
         sudo apt update
-        sudo apt install -y pandoc texlive-latex-base jq
+        sudo apt install -y \
+          pandoc \
+          texlive-latex-base \
+          texlive-latex-extra \
+          texlive-fonts-recommended \
+          texlive-xetex \
+          latexmk \
+          lmodern \
+          xcolor \
+          jq
 
     - name: 🔍 Run security scans
       run: |
@@ -33,7 +42,7 @@ jobs:
         bandit -r backend/ --severity-level MEDIUM -f json -o reports/bandit-report.json || echo '{"results": []}' > reports/bandit-report.json
         semgrep --config=auto --json > reports/semgrep-report.json || true
 
-    - name: 📝 Generate reports
+    - name: 📝 Generate markdown reports
       run: |
         # Bandit report
         echo "# Bandit Report" > reports/bandit-report.md
@@ -46,10 +55,20 @@ jobs:
         # Semgrep report
         echo "# Semgrep Report" > reports/semgrep-report.md
         jq -r '.results[] | "## \(.path)\n- Line: \(.start.line)\n- Rule: \(.check_id)\n- Message: \(.extra.message)\n"' reports/semgrep-report.json >> reports/semgrep-report.md
+
+    - name: 🖨 Convert reports to PDF
+      run: |
+        pandoc reports/bandit-report.md -o reports/bandit-report.pdf \
+          --pdf-engine=xelatex \
+          -V geometry:margin=1in \
+          -V mainfont="DejaVu Sans" \
+          -V monofont="DejaVu Sans Mono"
         
-        # Convert to PDF
-        pandoc reports/bandit-report.md -o reports/bandit-report.pdf
-        pandoc reports/semgrep-report.md -o reports/semgrep-report.pdf
+        pandoc reports/semgrep-report.md -o reports/semgrep-report.pdf \
+          --pdf-engine=xelatex \
+          -V geometry:margin=1in \
+          -V mainfont="DejaVu Sans" \
+          -V monofont="DejaVu Sans Mono"
 
     - name: 📤 Upload reports
       uses: actions/upload-artifact@v4
