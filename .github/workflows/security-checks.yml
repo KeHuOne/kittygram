@@ -1,0 +1,94 @@
+name: 🔐 Security Checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  gitleaks-scan:
+    name: 🔎 Scan repo for secrets (Gitleaks)
+    runs-on: ubuntu-latest
+
+    outputs:
+      gitleaks_warn: ${{ steps.gitleaks_summary.outputs.gitleaks_warn }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🕵️ Run Gitleaks
+        id: gitleaks_scan
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: detect --source=. --report-path=gitleaks-report.json --exit-code=0
+
+      - name: 📄 Upload Gitleaks Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+
+      - name: 📊 Extract Gitleaks summary
+        id: gitleaks_summary
+        run: |
+          WARNINGS=$(jq length gitleaks-report.json || echo 0)
+          echo "gitleaks_warn=$WARNINGS" >> $GITHUB_OUTPUT
+
+  trivy-scan:
+    name: 🛡️ Scan Dockerfile & Configs (Trivy)
+    runs-on: ubuntu-latest
+
+    outputs:
+      trivy_warn: ${{ steps.trivy_summary.outputs.trivy_warn }}
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
+
+      - name: 🔍 Scan Dockerfile and configs
+        id: trivy_scan
+        run: |
+          trivy config . --exit-code 0 --format json --output trivy-config-report.json
+
+      - name: 📄 Upload Trivy Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-config-report
+          path: trivy-config-report.json
+
+      - name: 📊 Extract Trivy summary
+        id: trivy_summary
+        run: |
+          WARNINGS=$(jq '.[].Results[].Misconfigurations | length' trivy-config-report.json | awk '{s+=$1} END {print s}')
+          echo "trivy_warn=$WARNINGS" >> $GITHUB_OUTPUT
+
+  notify:
+    name: 📬 Notify in Telegram
+    runs-on: ubuntu-latest
+    needs: [gitleaks-scan, trivy-scan]
+
+    steps:
+      - name: 📨 Send Telegram message
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_KITTY_TO }}
+          token: ${{ secrets.TELEGRAM_KITTY_TOKEN }}
+          message: |
+            🔐 Security Checks завершены
+
+            🕵️ Gitleaks предупреждений: ${{ needs.gitleaks-scan.outputs.gitleaks_warn }}
+            🛡️ Trivy Misconfigurations: ${{ needs.trivy-scan.outputs.trivy_warn }}
+
+            📎 Отчёты сохранены как артефакты в GitHub Actions.
