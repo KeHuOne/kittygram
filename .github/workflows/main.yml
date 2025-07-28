@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-    sast:
+  sast:
     name: 🔐 SAST Security Scanning
     runs-on: ubuntu-latest
 
