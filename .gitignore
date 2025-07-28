@@ -150,3 +150,7 @@ media/
 
 # Others
 node_modules
+
+dast.yml
+main.yml
+security-checks.yml

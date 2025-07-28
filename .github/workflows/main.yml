@@ -1,80 +1,41 @@
-name: Main Kittygram workflow
+name: 🐾 Kittygram CI/CD Pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
 
 jobs:
   sast:
-    name: 🔐 Static Application Security Testing (SAST)
+    name: 🔐 SAST
     runs-on: ubuntu-latest
-
     steps:
-    - name: ⬇️ Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          pip install bandit semgrep
+          sudo apt update
+          sudo apt install -y pandoc texlive-latex-base jq
+          mkdir -p reports
+          bandit -r backend/ --severity-level MEDIUM -f json -o reports/bandit-report.json || echo '{"results": []}' > reports/bandit-report.json
+          semgrep --config=auto --json > reports/semgrep-report.json || true
+          echo "# Bandit Report" > reports/bandit-report.md
+          jq -r '.results[] | "## \(.filename)\n- Line: \(.line)\n- Severity: \(.issue_severity)\n- Confidence: \(.issue_confidence)\n- Issue: \(.issue_text)\n"' reports/bandit-report.json >> reports/bandit-report.md || echo "## No issues found" >> reports/bandit-report.md
+          echo "# Semgrep Report" > reports/semgrep-report.md
+          jq -r '.results[] | "## \(.path)\n- Line: \(.start.line)\n- Rule: \(.check_id)\n- Message: \(.extra.message)\n"' reports/semgrep-report.json >> reports/semgrep-report.md
+          pandoc reports/bandit-report.md -o reports/bandit-report.pdf
+          pandoc reports/semgrep-report.md -o reports/semgrep-report.pdf
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sast-reports
+          path: reports/
 
-    - name: 🐍 Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: 📦 Install dependencies (bandit, semgrep, PDF tools)
-      run: |
-        pip install bandit semgrep
-        sudo apt update
-        sudo apt install -y pandoc texlive-latex-base jq
-
-    - name: 📂 Create reports directory
-      run: mkdir -p reports
-
-    - name: 🔍 Run Bandit
-      run: |
-        mkdir -p reports
-        bandit -r backend/ --severity-level MEDIUM -f json -o reports/bandit-report.json || echo '{"results": []}' > reports/bandit-report.json
-
-
-    - name: 🔍 Run Semgrep
-      run: |
-        semgrep --config=auto --json > reports/semgrep-report.json || true
-
-    - name: 📝 Convert Bandit report to Markdown
-      run: |
-        echo "# Bandit Report" > reports/bandit-report.md
-        if [ -s reports/bandit-report.json ]; then
-          jq -r '.results[] | "## \(.filename)\n- Line: \(.line)\n- Severity: \(.issue_severity)\n- Confidence: \(.issue_confidence)\n- Issue: \(.issue_text)\n"' reports/bandit-report.json >> reports/bandit-report.md
-        else
-          echo "##  No issues found" >> reports/bandit-report.md
-        fi
-
-    - name: 📝 Convert Semgrep report to Markdown
-      run: |
-        echo "# Semgrep Report" > reports/semgrep-report.md
-        jq -r '.results[] | "## \(.path)\n- Line: \(.start.line)\n- Rule: \(.check_id)\n- Message: \(.extra.message)\n"' reports/semgrep-report.json >> reports/semgrep-report.md
-    
-    - name: 🛠 Install PDF tools
-      run: |
-       sudo apt update
-       sudo apt install -y pandoc texlive-latex-base texlive-xetex texlive-fonts-recommended texlive-latex-recommended jq
-
-    - name: 🖨 Convert Bandit Markdown to PDF
-      run: |
-        pandoc reports/bandit-report.md -o reports/bandit-report.pdf
-
-    - name: 🖨 Convert Semgrep Markdown to PDF
-      run: |
-        pandoc reports/semgrep-report.md -o reports/semgrep-report.pdf
-
-    - name: 📤 Upload all SAST reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: sast-reports
-        path: reports/
-
-  tests:
+  backend-tests:
     name: 🧪 Backend Tests
     runs-on: ubuntu-latest
-
     services:
       postgres:
         image: postgres:13.10
@@ -82,161 +43,172 @@ jobs:
           POSTGRES_USER: kittygram_user
           POSTGRES_PASSWORD: kittygram_password
           POSTGRES_DB: kittygram
-        ports:
-          - 5432:5432
+        ports: ['5432:5432']
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v3
-
-      - name: 🐍 Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.9
-
-      - name: 💾 Кэш зависимостей pip
-        uses: actions/cache@v3
+      - uses: actions/cache@v3
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-      - name: 📦 Install dependencies
-        run: |
-          python -m pip install --upgrade pip 
-          pip install flake8==6.0.0 flake8-isort==6.0.0
+      - run: |
           pip install -r ./backend/requirements.txt
-
-      - name: ✅ Run flake8 and Django tests
-        env:
-          POSTGRES_USER: kittygram_user
-          POSTGRES_PASSWORD: kittygram_password
-          POSTGRES_DB: kittygram
-          DB_HOST: 127.0.0.1
-          DB_PORT: 5432
-        run: |
           python -m flake8 backend/
           cd backend/
           python manage.py test
 
-  build_and_push_to_docker_hub:
-    name: 🐳 Push Backend Docker Image
+  frontend-tests:
+    name: 🌐 Frontend Tests
     runs-on: ubuntu-latest
-    needs: tests
     steps:
-      - name: 📥 Checkout repo
-        uses: actions/checkout@v3
-
-      - name: 🧱 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: 🔐 Login to Docker 
-        uses: docker/login-action@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }} 
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          node-version: 18
+      - run: |
+          cd frontend/
+          npm ci
+          npm run test
 
-      - name: 📤 Push to DockerHub
-        uses: docker/build-push-action@v4
+  build-backend:
+    name: 🐳 Build Backend Image
+    runs-on: ubuntu-latest
+    needs: backend-tests
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - uses: docker/build-push-action@v4
         with:
           context: ./backend/
           push: true
           tags: kehuone/kittygram_backend:latest
 
-  frontend_tests:
-    name: 🌐 Frontend Tests
+  build-frontend:
+    name: 🐳 Build Frontend Image
     runs-on: ubuntu-latest
+    needs: frontend-tests
     steps:
-      - name: 📥 Checkout repo
-        uses: actions/checkout@v3
-
-      - name: 🟢 Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
-      - name: 📦 Install dependencies
-        run: |
-          cd frontend/
-          npm ci
-
-      - name: ✅ Run frontend tests
-        run: |
-          cd frontend/
-          npm run test
-
-  build_frontend_and_push_to_docker_hub:
-    name: 🐳 Push Frontend Docker Image
-    runs-on: ubuntu-latest
-    needs: frontend_tests
-    steps:
-      - name: 📥 Checkout repo
-        uses: actions/checkout@v3
-
-      - name: 🧱 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: 🔐 Login to Docker 
-        uses: docker/login-action@v2
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: 📤 Push to DockerHub
-        uses: docker/build-push-action@v4
+      - uses: docker/build-push-action@v4
         with:
           context: ./frontend/
           push: true
           tags: kehuone/kittygram_frontend:latest
 
-  build_gateway_and_push_to_docker_hub:
-    name: 🐳 Push Gateway Docker Image
+  build-gateway:
+    name: 🐳 Build Gateway Image
     runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout repo
-        uses: actions/checkout@v3
-
-      - name: 🧱 Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: 🔐 Login to Docker 
-        uses: docker/login-action@v2
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: 📤 Push to DockerHub
-        uses: docker/build-push-action@v4
+      - uses: docker/build-push-action@v4
         with:
           context: ./nginx/
           push: true
           tags: kehuone/kittygram_gateway:latest
 
-  deploy:
-    name: 🚀 Deploy to VPS
+  dast:
+    name: 🧪 DAST ZAP
     runs-on: ubuntu-latest
-    needs: 
-      - build_and_push_to_docker_hub
-      - build_frontend_and_push_to_docker_hub
-      - build_gateway_and_push_to_docker_hub
-      - sast
+    outputs:
+      warn: ${{ steps.zap_summary.outputs.warn }}
+      fail: ${{ steps.zap_summary.outputs.fail }}
+      pass: ${{ steps.zap_summary.outputs.pass }}
+      run_id: ${{ steps.save_run_id.outputs.run_id }}
     steps:
-      - name: 📥 Checkout repo
-        uses: actions/checkout@v3
+      - run: touch report_html.html report_json.json report_md.md && chmod a+w report_*.*
+      - uses: zaproxy/action-full-scan@v0.12.0
+        with:
+          target: 'http://185.121.13.20:9000'
+          fail_action: false
+          cmd_options: '-a -j'
+          allow_issue_writing: false
+          artifact_name: zap-reports
+      - run: sudo apt-get update && sudo apt-get install -y jq
+      - id: zap_summary
+        run: |
+          WARN=$(jq '.site[0].alerts[] | select(.riskcode=="2")' report_json.json | wc -l)
+          FAIL=$(jq '.site[0].alerts[] | select(.riskcode=="3")' report_json.json | wc -l)
+          PASS=$(jq '.site[0].alerts' report_json.json | jq length)
+          echo "warn=$WARN" >> $GITHUB_OUTPUT
+          echo "fail=$FAIL" >> $GITHUB_OUTPUT
+          echo "pass=$PASS" >> $GITHUB_OUTPUT
+      - id: save_run_id
+        run: echo "run_id=${{ github.run_id }}" >> $GITHUB_OUTPUT
 
-      - name: 📤 Copy docker-compose.yml via SCP
-        uses: appleboy/scp-action@master
+  security-checks:
+    name: 🔒 Security Checks
+    runs-on: ubuntu-latest
+    outputs:
+      gitleaks_warn: ${{ steps.gitleaks_summary.outputs.gitleaks_warn }}
+      trivy_warn: ${{ steps.trivy_summary.outputs.trivy_warn }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 🕵️ Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          args: detect --source=. --report-path=gitleaks-report.json --exit-code=0
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+
+      - id: gitleaks_summary
+        run: |
+          WARNINGS=$(jq length gitleaks-report.json || echo 0)
+          echo "gitleaks_warn=$WARNINGS" >> $GITHUB_OUTPUT
+
+      - name: 🛠 Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update && sudo apt-get install -y trivy
+
+      - run: trivy config . --exit-code 0 --format json --output trivy-config-report.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: trivy-config-report
+          path: trivy-config-report.json
+
+      - id: trivy_summary
+        run: |
+          WARNINGS=$(jq '.[].Results[].Misconfigurations | length' trivy-config-report.json | awk '{s+=$1} END {print s}')
+          echo "trivy_warn=$WARNINGS" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: 🚀 Deploy
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend, build-gateway, sast]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
           key: ${{ secrets.SSH_KEY }}
           source: "docker-compose.production.yml"
           target: "kittygram_final"
-
-      - name: 🧩 Run remote deploy script via SSH
-        uses: appleboy/ssh-action@master
+      - uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
@@ -250,14 +222,24 @@ jobs:
             sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic --noinput
             sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/
 
-  send_message:
-    name: 📣 Telegram Notification
+  notify-all:
+    name: 📣 Telegram Notifications
     runs-on: ubuntu-latest
-    needs: deploy
+    needs: [deploy, dast, security-checks]
     steps:
-      - name: 📬 Send message to Telegram
-        uses: appleboy/telegram-action@master
+      - uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_KITTY_TO }}
           token: ${{ secrets.TELEGRAM_KITTY_TOKEN }}
-          message: Деплой успешно выполнен! 🚀
+          message: |
+            🧪 ZAP DAST завершён
+            ⚠ Warnings: ${{ needs.dast.outputs.warn }}
+            🚫 Fails: ${{ needs.dast.outputs.fail }}
+            ✅ Alerts: ${{ needs.dast.outputs.pass }}
+
+            🛡 Security Checks завершены
+            🕵 Gitleaks: ${{ needs.security-checks.outputs.gitleaks_warn }}
+            🔐 Trivy: ${{ needs.security-checks.outputs.trivy_warn }}
+
+            ✅ Деплой завершён успешно!
+            📎 Отчёты доступны в артефактах GitHub Actions.
