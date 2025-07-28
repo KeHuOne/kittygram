@@ -26,7 +26,7 @@ jobs:
         pip install bandit semgrep
         sudo apt update && sudo apt install -y jq
 
-        - name: 📦 Install minimal LaTeX environment
+    - name: 📦 Install minimal LaTeX environment
       run: |
         sudo apt update
         sudo apt install -y \
