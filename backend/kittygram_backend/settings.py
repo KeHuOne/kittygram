@@ -9,7 +9,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'my_default_secret_key')
 
 DEBUG = False
 
-ALLOWED_HOSTS = ['158.160.71.23', '127.0.0.1', 'kittygrambudko.hopto.org', 'localhost']
+ALLOWED_HOSTS = ['185.121.13.20', '127.0.0.1', 'diplom.greenhomelab.ru', 'localhost']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
