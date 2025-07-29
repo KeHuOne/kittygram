@@ -1,8 +1,13 @@
 FROM node:18
 WORKDIR /app
 
+COPY package*.json ./
+RUN npm ci
+
 COPY . .
+RUN npm run build
 
-RUN npm ci && npm run build && npm install --global http-server
+RUN npm install -g serve
+CMD ["serve", "-s", "build", "-l", "8000"]
 
-CMD ["npx", "-y", "http-server", "-p", "8000", "/app/build"]
+EXPOSE 8000
