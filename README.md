@@ -9,4 +9,3 @@ Node.js
 PostgreSQL
 Docker
 Docker-compose
-
