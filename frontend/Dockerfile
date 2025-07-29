@@ -8,6 +8,6 @@ COPY . .
 RUN npm run build
 
 RUN npm install -g serve
-CMD ["serve", "-s", "build", "-l", "8000"]
 
 EXPOSE 8000
+CMD ["serve", "-s", "build", "-l", "8000"]
