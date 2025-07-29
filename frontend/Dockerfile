@@ -7,10 +7,8 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-RUN npm install -g serve
-
+# Используем встроенный сервер Node.js
 WORKDIR /app/build
-
-CMD ["serve", "-s", ".", "-l", "8000"]
+CMD ["npx", "serve", "-s", ".", "-l", "8000"]
 
 EXPOSE 8000
